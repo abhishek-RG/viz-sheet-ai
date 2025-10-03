@@ -167,6 +167,48 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          business_email: string
+          business_in_us: string | null
+          company_name: string
+          created_at: string | null
+          current_monthly_expenses: string | null
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          business_email: string
+          business_in_us?: string | null
+          company_name: string
+          created_at?: string | null
+          current_monthly_expenses?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          phone_number?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          business_email?: string
+          business_in_us?: string | null
+          company_name?: string
+          created_at?: string | null
+          current_monthly_expenses?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone_number?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           account: string
