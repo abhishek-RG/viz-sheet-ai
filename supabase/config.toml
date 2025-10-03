@@ -1,0 +1,4 @@
+project_id = "qeuizecqlygiclxzhhfn"
+
+[functions.vcfo-chat]
+verify_jwt = false
