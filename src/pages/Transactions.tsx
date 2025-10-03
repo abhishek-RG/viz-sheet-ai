@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigation } from "@/components/Navigation";
+
 import { DataTable, Column } from "@/components/DataTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -140,8 +140,6 @@ export default function Transactions() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-      
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>

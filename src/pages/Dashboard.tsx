@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigation } from "@/components/Navigation";
+
 import { KPICard } from "@/components/KPICard";
 import { DollarSign, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,8 +102,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-      
       <div className="container mx-auto p-6 space-y-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Financial Dashboard</h2>

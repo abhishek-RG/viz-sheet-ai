@@ -8,7 +8,11 @@ import Transactions from "./pages/Transactions";
 import Invoices from "./pages/Invoices";
 import Loans from "./pages/Loans";
 import VCFO from "./pages/VCFO";
+import Home from "./pages/Home";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AppLayout } from "./components/AppLayout";
 
 const queryClient = new QueryClient();
 
@@ -19,12 +23,50 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/transactions" element={<Transactions />} />
-          <Route path="/invoices" element={<Invoices />} />
-          <Route path="/loans" element={<Loans />} />
-          <Route path="/vcfo" element={<VCFO />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/home" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Home />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/transactions" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Transactions />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/invoices" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Invoices />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/loans" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Loans />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/vcfo" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <VCFO />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
