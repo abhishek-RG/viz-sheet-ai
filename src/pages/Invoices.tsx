@@ -69,9 +69,12 @@ export default function Invoices() {
   };
 
   const handleAdd = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { error } = await supabase
       .from('invoices')
-      .insert([newInvoice]);
+      .insert([{ ...newInvoice, user_id: user.id }]);
 
     if (error) {
       toast({

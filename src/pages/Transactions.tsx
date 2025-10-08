@@ -69,9 +69,12 @@ export default function Transactions() {
   };
 
   const handleAdd = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { error } = await supabase
       .from('transactions')
-      .insert([newTransaction]);
+      .insert([{ ...newTransaction, user_id: user.id }]);
 
     if (error) {
       toast({

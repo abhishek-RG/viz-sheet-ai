@@ -73,9 +73,12 @@ export default function Loans() {
   };
 
   const handleAdd = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { error } = await supabase
       .from('loans')
-      .insert([newLoan]);
+      .insert([{ ...newLoan, user_id: user.id }]);
 
     if (error) {
       toast({
