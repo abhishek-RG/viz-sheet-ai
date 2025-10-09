@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Receipt, FileText, Banknote, Bot, Home, LogOut } from "lucide-react";
+import { LayoutDashboard, Receipt, FileText, Banknote, Bot, Home, TrendingUp, PiggyBank, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,8 @@ const navItems = [
   { name: "Transactions", href: "/transactions", icon: Receipt },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Loans", href: "/loans", icon: Banknote },
+  { name: "Cashflow Forecast", href: "/cashflow-forecast", icon: TrendingUp },
+  { name: "Debt Optimization", href: "/debt-optimization", icon: PiggyBank },
   { name: "VCFO AI", href: "/vcfo", icon: Bot },
 ];
 

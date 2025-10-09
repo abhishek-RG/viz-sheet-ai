@@ -8,6 +8,8 @@ import Transactions from "./pages/Transactions";
 import Invoices from "./pages/Invoices";
 import Loans from "./pages/Loans";
 import VCFO from "./pages/VCFO";
+import CashflowForecast from "./pages/CashflowForecast";
+import DebtOptimization from "./pages/DebtOptimization";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -64,6 +66,20 @@ const App = () => (
             <ProtectedRoute>
               <AppLayout>
                 <VCFO />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/cashflow-forecast" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <CashflowForecast />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/debt-optimization" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <DebtOptimization />
               </AppLayout>
             </ProtectedRoute>
           } />
