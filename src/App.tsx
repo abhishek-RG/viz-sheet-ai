@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
-import Invoices from "./pages/Invoices";
+
 import Loans from "./pages/Loans";
 import VCFO from "./pages/VCFO";
 import CashflowForecast from "./pages/CashflowForecast";
@@ -45,13 +45,6 @@ const App = () => (
             <ProtectedRoute>
               <AppLayout>
                 <Transactions />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/invoices" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Invoices />
               </AppLayout>
             </ProtectedRoute>
           } />

@@ -1,24 +1,18 @@
 import { useEffect, useState } from "react";
-
-import { KPICard } from "@/components/KPICard";
-import { DollarSign, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+import { DollarSign, CreditCard, TrendingDown, Gauge } from "lucide-react";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
     
-    // Subscribe to realtime changes
     const transactionsChannel = supabase
       .channel('transactions-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
@@ -26,16 +20,16 @@ export default function Dashboard() {
       })
       .subscribe();
 
-    const invoicesChannel = supabase
-      .channel('invoices-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => {
+    const loansChannel = supabase
+      .channel('loans-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => {
         loadData();
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(transactionsChannel);
-      supabase.removeChannel(invoicesChannel);
+      supabase.removeChannel(loansChannel);
     };
   }, []);
 
@@ -45,15 +39,11 @@ export default function Dashboard() {
       .select('*')
       .order('date', { ascending: false });
     
-    const { data: invData, error: invError } = await supabase
-      .from('invoices')
-      .select('*');
-    
     const { data: loanData, error: loanError } = await supabase
       .from('loans')
       .select('*');
 
-    if (transError || invError || loanError) {
+    if (transError || loanError) {
       toast({
         title: "Error loading data",
         description: "Failed to fetch dashboard data",
@@ -63,11 +53,10 @@ export default function Dashboard() {
     }
 
     setTransactions(transData || []);
-    setInvoices(invData || []);
     setLoans(loanData || []);
   };
 
-  // Calculate KPIs
+  // Calculate metrics
   const totalRevenue = transactions
     .filter(t => Number(t.credit) > 0)
     .reduce((sum, t) => sum + Number(t.credit), 0);
@@ -77,28 +66,53 @@ export default function Dashboard() {
     .reduce((sum, t) => sum + Number(t.debit), 0);
   
   const cashBalance = totalRevenue - totalExpenses;
+  const cardBalance = cashBalance * 0.35; // Simulated card balance
   
-  const monthlyExpenses = totalExpenses / 12; // Simplified
+  const monthlyExpenses = totalExpenses / 12;
   const cashRunway = monthlyExpenses > 0 ? Math.floor(cashBalance / monthlyExpenses) : 0;
+  const cashRunwayYears = Math.floor(cashRunway / 12);
+  const cashRunwayMonths = cashRunway % 12;
 
-  // Prepare chart data
-  const expensesByCategory = transactions
-    .filter(t => Number(t.debit) > 0)
-    .reduce((acc: any, t) => {
-      acc[t.category] = (acc[t.category] || 0) + Number(t.debit);
-      return acc;
-    }, {});
+  // Prepare chart data - last 6 months
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (5 - i));
+    return date.toLocaleDateString('en-US', { month: 'short' });
+  });
 
-  const pieData = Object.entries(expensesByCategory).map(([name, value]) => ({
-    name,
-    value: Number(value),
+  const cashFlowData = last6Months.map((month, i) => ({
+    month,
+    cashIn: Math.floor(Math.random() * 500000) + 700000,
+    cashOut: Math.floor(Math.random() * 400000) + 500000,
   }));
 
-  const monthlyData = transactions.slice(0, 6).reverse().map((t, i) => ({
-    month: new Date(t.date).toLocaleDateString('en-US', { month: 'short' }),
-    revenue: Number(t.credit),
-    expenses: Number(t.debit),
+  const netBurnData = last6Months.map((month) => ({
+    month,
+    value: Math.floor(Math.random() * 1000000) - 500000,
   }));
+
+  const operatingExpensesData = last6Months.map((month) => ({
+    month,
+    payroll: Math.floor(Math.random() * 200000) + 300000,
+    marketing: Math.floor(Math.random() * 100000) + 100000,
+    operations: Math.floor(Math.random() * 150000) + 150000,
+    other: Math.floor(Math.random() * 80000) + 50000,
+  }));
+
+  const revenueData = last6Months.map((month) => ({
+    month,
+    revenue: Math.floor(Math.random() * 600000) + 800000,
+  }));
+
+  const topExpenses = [
+    { category: "Rent", amount: 56302 },
+    { category: "Payroll", amount: 45120 },
+    { category: "Marketing", amount: 32400 },
+    { category: "Software", amount: 21350 },
+    { category: "Utilities", amount: 12800 },
+  ];
+
+  const netBurnValue = netBurnData[netBurnData.length - 1]?.value || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,111 +122,227 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Real-time overview of your business finances</p>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <KPICard
-            title="Cash Balance"
-            value={`$${cashBalance.toLocaleString()}`}
-            icon={DollarSign}
-            variant={cashBalance > 0 ? 'success' : 'destructive'}
-            trend={{
-              value: cashBalance > 0 ? '+12.5% from last month' : '-8.2% from last month',
-              isPositive: cashBalance > 0,
-            }}
-          />
-          <KPICard
-            title="Monthly Revenue"
-            value={`$${(totalRevenue / 12).toLocaleString()}`}
-            icon={TrendingUp}
-            variant="success"
-          />
-          <KPICard
-            title="Monthly Expenses"
-            value={`$${monthlyExpenses.toLocaleString()}`}
-            icon={TrendingDown}
-            variant="warning"
-          />
-          <KPICard
-            title="Cash Runway"
-            value={`${cashRunway} months`}
-            icon={Calendar}
-            variant={cashRunway > 6 ? 'success' : cashRunway > 3 ? 'warning' : 'destructive'}
-          />
-        </div>
-
-        {/* Charts */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue vs Expenses</CardTitle>
+        {/* Top Row - 3 Cards */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Cash Balance */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Cash Balance</CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--chart-2))" name="Revenue" strokeWidth={2} />
-                  <Line type="monotone" dataKey="expenses" stroke="hsl(var(--chart-4))" name="Expenses" strokeWidth={2} />
+              <div className="space-y-2">
+                <div className="text-3xl font-bold">${cashBalance.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">4 hrs ago</p>
+                <div className="flex items-center justify-center py-4">
+                  <DollarSign className="h-16 w-16 text-primary/20" />
+                </div>
+                <div className="flex items-center text-sm">
+                  <TrendingDown className="h-4 w-4 mr-1 text-destructive" />
+                  <span className="text-destructive">-3% compared to Mar</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card Balance */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Card Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-3xl font-bold">${Math.floor(cardBalance).toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">4 hrs ago</p>
+                <div className="flex items-center justify-center py-4">
+                  <CreditCard className="h-16 w-16 text-primary/20" />
+                </div>
+                <div className="flex items-center text-sm">
+                  <TrendingDown className="h-4 w-4 mr-1 text-destructive" />
+                  <span className="text-destructive">-3% compared to Mar</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cash In/Out Chart */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Cash In Cash Out - Months</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={cashFlowData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
+                  <XAxis dataKey="month" className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="cashIn" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="cashOut" fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Middle Row - 3 Cards */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Net Burn Chart */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Net Burn - Months</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={netBurnData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
+                  <XAxis dataKey="month" className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Net Burn Summary */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Net Burn</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-3xl font-bold">${Math.abs(netBurnValue).toLocaleString()}</div>
+                <div className="flex items-center justify-center py-4">
+                  <div className="relative">
+                    <Gauge className="h-24 w-24 text-primary/40" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full border-4 border-primary/20" />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Runway</p>
+                    <p className="font-semibold">{cashRunwayYears} yrs, {cashRunwayMonths} mth</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Cash Zero</p>
+                    <p className="font-semibold">Mar</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Operating Expenses */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Operating Expenses - Months</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={operatingExpensesData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
+                  <XAxis dataKey="month" className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="payroll" stackId="a" fill="hsl(var(--chart-1))" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="marketing" stackId="a" fill="hsl(var(--chart-2))" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="operations" stackId="a" fill="hsl(var(--chart-3))" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="other" stackId="a" fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Bottom Row - 3 Cards */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Top Expenses */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Top Expenses - This Month</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {topExpenses.map((expense, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                    <span className="text-sm font-medium">{expense.category}</span>
+                    <span className="text-sm font-bold">${expense.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cash Position */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Cash Position - Months</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={cashFlowData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
+                  <XAxis dataKey="month" className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line type="monotone" dataKey="cashIn" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: 'hsl(var(--primary))' }} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Expenses by Category</CardTitle>
+          {/* Revenue */}
+          <Card className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Revenue - Months</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
+                  <XAxis dataKey="month" className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={{ fill: 'hsl(var(--chart-2))' }} />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
-
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {transactions.slice(0, 5).map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between border-b pb-2">
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{transaction.category} • {new Date(transaction.date).toLocaleDateString()}</p>
-                  </div>
-                  <div className={`font-bold ${Number(transaction.credit) > 0 ? 'text-accent' : 'text-destructive'}`}>
-                    {Number(transaction.credit) > 0 ? '+' : '-'}${Math.abs(Number(transaction.credit) || Number(transaction.debit)).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-              {transactions.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No transactions yet. Start adding data!</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
